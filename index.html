@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>도약 vs 미래 — 청년 적금 환산 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15130e; --paper:#f4f0e6; --card:#fffdf8; --line:#ddd5c3;
+    --leap:#2563c9; --leap-soft:#e7eefb;
+    --futG:#c97a1f; --futG-soft:#fbf0df;
+    --futU:#d83a1a; --futU-soft:#fbe6df;
+    --gold:#b8922e; --mute:#73695420;
+    --mutetx:#6c6450;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{-webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none}
+  input,select,textarea{-webkit-user-select:text; -moz-user-select:text; -ms-user-select:text; user-select:text}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:'Noto Sans KR',sans-serif; background:var(--paper); color:var(--ink);
+    line-height:1.55; padding:clamp(14px,3.5vw,44px); max-width:1240px; margin:0 auto;}
+  .mono{font-family:'Space Grotesk'; font-feature-settings:"tnum"}
+
+  header{margin-bottom:30px; border-bottom:2.5px solid var(--ink); padding-bottom:18px}
+  .eyebrow{font-size:11.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--mutetx); font-weight:700}
+  h1{font-size:clamp(26px,5vw,44px); font-weight:900; line-height:1.04; margin:7px 0 9px; letter-spacing:-.02em}
+  h1 .vs{font-family:'Space Grotesk'; font-weight:400; color:var(--gold); font-style:italic; padding:0 .12em}
+  .sub{color:var(--mutetx); font-size:14.5px; max-width:680px}
+  .sub b{color:var(--ink)}
+
+  .panel{background:var(--card); border:1.5px solid var(--line); border-radius:15px; padding:clamp(18px,3vw,26px); margin-bottom:22px}
+  .panel h2{font-size:13px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; color:var(--mutetx); margin-bottom:18px; display:flex; align-items:center; gap:8px}
+  .panel h2::before{content:""; width:18px; height:3px; background:var(--gold); border-radius:2px}
+
+  .inputs{display:grid; grid-template-columns:repeat(2,1fr); gap:16px 22px}
+  @media(max-width:620px){ .inputs{grid-template-columns:1fr} }
+  .field label{display:block; font-size:13px; font-weight:700; margin-bottom:6px}
+  .field .hint{font-weight:400; color:var(--mutetx); font-size:11.5px}
+  input[type=number],input[type=month],select{
+    width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:9px;
+    font-family:'Space Grotesk'; font-size:15px; background:#fff; color:var(--ink)}
+  input:focus,select:focus{outline:2px solid var(--gold); outline-offset:1px; border-color:var(--gold)}
+  .rangewrap{display:flex; align-items:center; gap:12px}
+  input[type=range]{flex:1; accent-color:var(--gold); height:6px}
+  .rangeval{font-family:'Space Grotesk'; font-weight:600; min-width:60px; text-align:right; font-size:16px}
+  .remain{grid-column:1/-1; font-size:13px; color:var(--leap); font-weight:700; background:var(--leap-soft); padding:9px 13px; border-radius:8px}
+
+  .salary-head{grid-column:1/-1; font-size:13px; font-weight:700; margin-top:4px; padding-top:14px; border-top:1px dashed var(--line)}
+  .salary-head .hint{font-weight:400; color:var(--mutetx); font-size:11.5px; display:block; margin-top:2px}
+  .salary-head .hint .emph{color:var(--gold); font-weight:700; background:var(--futG-soft); padding:2px 7px; border-radius:6px; display:inline-block; margin-top:3px}
+
+  /* 결과 3열 */
+  .cols{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+  @media(max-width:820px){ .cols{grid-template-columns:1fr} }
+  .col{border:1.5px solid var(--line); border-radius:14px; padding:22px; background:var(--card); position:relative; overflow:hidden}
+  .col::before{content:""; position:absolute; top:0; left:0; right:0; height:5px}
+  .col.leap::before{background:var(--leap)} .col.leap{border-top-color:transparent}
+  .col.futG::before{background:var(--futG)}
+  .col.futU::before{background:var(--futU)}
+  .col .ctag{font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; display:inline-block; margin-bottom:3px}
+  .col.leap .ctag{background:var(--leap-soft); color:var(--leap)}
+  .col.futG .ctag{background:var(--futG-soft); color:var(--futG)}
+  .col.futU .ctag{background:var(--futU-soft); color:var(--futU)}
+  .col h3{font-size:17px; font-weight:900; margin:4px 0 2px}
+  .col .period{font-size:12px; color:var(--mutetx); font-family:'Space Grotesk'; font-weight:500}
+
+  /* 남은 만기 강조 배지 */
+  .term{margin:12px 0 2px; padding:11px 14px; border-radius:11px; display:flex; align-items:baseline; gap:7px}
+  .col.leap .term{background:var(--leap-soft)}
+  .col.futG .term{background:var(--futG-soft)}
+  .col.futU .term{background:var(--futU-soft)}
+  .term .tnum{font-family:'Space Grotesk'; font-weight:700; font-size:30px; line-height:1; letter-spacing:-.02em}
+  .col.leap .term .tnum{color:var(--leap)}
+  .col.futG .term .tnum{color:var(--futG)}
+  .col.futU .term .tnum{color:var(--futU)}
+  .term .tunit{font-size:13px; font-weight:700; color:var(--mutetx)}
+  .term .tsub{margin-left:auto; font-size:11px; color:var(--mutetx); font-weight:600; text-align:right; line-height:1.3; font-family:'Noto Sans KR'}
+
+  .big{margin:18px 0 4px; font-family:'Space Grotesk'; font-weight:700; line-height:1; letter-spacing:-.02em; display:flex; align-items:baseline; gap:3px}
+  .col.leap .big{color:var(--leap)} .col.futG .big{color:var(--futG)} .col.futU .big{color:var(--futU)}
+  .big .num{font-size:clamp(38px,7vw,50px)}
+  .big .pct{font-size:21px; font-weight:600}
+  .biglabel{font-size:11.5px; color:var(--mutetx); font-weight:700; margin-bottom:14px; line-height:1.35}
+  /* 순위 배지 */
+  .rankbadge{display:inline-flex; align-items:center; gap:3px; font-family:'Space Grotesk'; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; vertical-align:middle}
+  .rankbadge.eff{background:var(--futG-soft); color:var(--futG); margin-left:4px}
+  .rankbadge.prof{background:var(--futG-soft); color:var(--futG)}
+  .rankbadge.r1{background:var(--gold); color:#fff}
+  .pwrap{display:flex; align-items:center; gap:8px}
+
+  /* 순이득 블록 (환산금리와 같은 급) */
+  .profit{display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:13px 0 14px; margin-bottom:6px; border-top:1px solid #f1ece0; border-bottom:2px solid #f1ece0}
+  .profit .plabel{font-size:12.5px; font-weight:700; color:var(--mutetx); line-height:1.3}
+  .profit .psub{display:block; font-size:10.5px; font-weight:400; color:var(--mutetx); opacity:.8}
+  .profit .pval{font-family:'Space Grotesk'; font-weight:700; font-size:clamp(20px,3.4vw,25px); letter-spacing:-.01em; white-space:nowrap}
+  .col.leap .profit .pval{color:var(--leap)}
+  .col.futG .profit .pval{color:var(--futG)}
+  .col.futU .profit .pval{color:var(--futU)}
+
+  /* 설명 배너 */
+  .explain-banner{background:var(--ink); border-radius:14px; padding:clamp(18px,3vw,24px) clamp(20px,3vw,28px); margin-bottom:20px}
+  .explain-banner .eb-verdict{display:flex; gap:clamp(20px,5vw,48px); flex-wrap:wrap}
+  .explain-banner .ev-cell{flex:1; min-width:240px}
+  .explain-banner .ev-k{font-size:13px; color:var(--paper); font-weight:700; display:flex; align-items:center; gap:7px; margin-bottom:11px; flex-wrap:wrap}
+  .explain-banner .ev-k b{font-family:'Noto Sans KR'; font-weight:700; padding:2px 9px; border-radius:20px; font-size:11.5px}
+  .explain-banner .ev-sub{font-weight:400; color:#8b8472; font-size:11px}
+  .explain-banner .eb-effi{background:#c97a1f; color:#fff}
+  .explain-banner .eb-prof{background:var(--gold); color:#fff}
+  .explain-banner .ev-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px}
+  .explain-banner .ev-row{display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:9px; background:#1f1c17}
+  .explain-banner .ev-row.top{background:#2a2620; box-shadow:inset 3px 0 0 var(--gold)}
+  .explain-banner .ev-rank{font-family:'Space Grotesk'; font-weight:700; font-size:13px; color:#8b8472; min-width:30px}
+  .explain-banner .ev-row.top .ev-rank{color:var(--gold)}
+  .explain-banner .ev-name{font-size:13.5px; font-weight:700; color:var(--paper); flex:1; line-height:1.25}
+  .explain-banner .ev-num{font-family:'Space Grotesk'; font-weight:700; font-size:14px; color:#c9c3b3; white-space:nowrap}
+  .explain-banner .ev-row.top .ev-num{color:var(--gold)}
+  .explain-banner .ev-row.dim{opacity:.5}
+  .explain-banner .eb-msg{margin-top:15px; padding-top:14px; border-top:1px solid #33302a; font-size:13px; color:#d8d2c2; line-height:1.55}
+  .explain-banner .eb-msg b{color:var(--gold)}
+
+  .ln{display:flex; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:1px solid #f1ece0}
+  .ln span:last-child{font-family:'Space Grotesk'; font-weight:500}
+  .ln.tot{border-bottom:none; border-top:2px solid var(--ink); margin-top:5px; padding-top:9px; font-weight:900}
+  .ln.tot span:last-child{font-weight:700; font-size:15.5px}
+
+  .badge{position:absolute; top:14px; right:-32px; transform:rotate(45deg); background:var(--gold); color:#fff; font-size:10.5px; font-weight:700; padding:3px 36px; letter-spacing:.05em}
+
+
+  footer{margin-top:26px; font-size:11.5px; color:var(--mutetx); line-height:1.65; border-top:1px solid var(--line); padding-top:16px}
+  details summary{cursor:pointer; font-weight:700; color:var(--ink); font-size:12.5px}
+  details[open] summary{margin-bottom:8px}
+  .note-compare{margin:18px 0 4px; padding:18px 20px; background:var(--card); border:1.5px solid var(--line); border-left:5px solid var(--gold); border-radius:12px; font-size:13.5px; line-height:1.65; color:var(--mutetx)}
+  .note-compare b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">청년 자산형성 · 환산 비교기</div>
+  <h1>청년도약계좌 <span class="vs">vs</span> 청년미래적금</h1>
+  <p class="sub">2026년 7월부터 만기까지, 두 상품에 넣었을 때 받을 돈을 계산하고 — 비과세·정부기여금까지 녹여 <b>일반 적금 몇 %짜리</b>인지로 환산합니다. 갈아탈지 직관적으로 판단하세요.</p>
+</header>
+
+<!-- 입력 -->
+<div class="panel">
+  <div class="inputs">
+    <div class="field">
+      <label>도약계좌 가입 시기 <span class="hint">— 만기·남은기간 자동 계산</span></label>
+      <input type="month" id="leapStart" value="2024-04">
+    </div>
+    <div class="field">
+      <label>도약계좌 금리 <span class="hint">앞 3년 고정 · 우대 포함 (만기까지 유지 가정)</span></label>
+      <div class="rangewrap"><input type="range" id="leapRate" min="3.8" max="6.0" step="0.1" value="6.0"><span class="rangeval mono" id="leapRateV">6.0%</span></div>
+    </div>
+    <div class="field">
+      <label>도약 월 납입액 <span class="hint">(만원, 최대 70)</span></label>
+      <input type="number" id="leapMonthly" value="70" min="0" max="70" step="1">
+    </div>
+    <div class="field">
+      <label>도약 마지막 2년 변동금리 <span class="hint">가입 4년차부터 적용 · 기본 3% + 우대 최대 1.5%p</span></label>
+      <div class="rangewrap"><input type="range" id="leapVarRate" min="3.0" max="4.5" step="0.1" value="4.5"><span class="rangeval mono" id="leapVarRateV">4.5%</span></div>
+    </div>
+    <div class="field">
+      <label>미래적금 월 납입액 <span class="hint">(만원, 최대 50)</span></label>
+      <input type="number" id="futMonthly" value="50" min="0" max="50" step="1">
+    </div>
+    <div class="field">
+      <label>미래적금 금리 <span class="hint">기본 5% + 은행 우대 2~3%p (최고 7~8%)</span></label>
+      <div class="rangewrap"><input type="range" id="futRate" min="5.0" max="8.0" step="0.1" value="7.0"><span class="rangeval mono" id="futRateV">7.0%</span></div>
+    </div>
+    <div class="remain" id="remain"></div>
+
+    <div class="salary-head">연도별 총급여 구간 <span class="hint">매년 유지심사로 도약 기여금이 달라집니다. <b class="emph">28년 이후 소득은 27년과 같다고 가정</b></span></div>
+    <div class="field">
+      <label>2024년 소득구간</label>
+      <select id="sal24" class="salsel"></select>
+    </div>
+    <div class="field">
+      <label>2025년 소득구간</label>
+      <select id="sal25" class="salsel"></select>
+    </div>
+    <div class="field">
+      <label>2026년 예상 소득구간</label>
+      <select id="sal26" class="salsel"></select>
+    </div>
+    <div class="field">
+      <label>2027년 예상 소득구간</label>
+      <select id="sal27" class="salsel"></select>
+    </div>
+  </div>
+</div>
+
+<!-- 결과 3열 -->
+<div class="explain-banner">
+  <div class="eb-verdict">
+    <div class="ev-cell">
+      <div class="ev-k"><b class="eb-effi">효율</b> 순위 <span class="ev-sub">넣는 돈 대비 (환산금리)</span></div>
+      <ol class="ev-list" id="evRateList"></ol>
+    </div>
+    <div class="ev-cell">
+      <div class="ev-k"><b class="eb-prof">총이득</b> 순위 <span class="ev-sub">실제 버는 금액 (이자+기여금)</span></div>
+      <ol class="ev-list" id="evProfList"></ol>
+    </div>
+  </div>
+  <div class="eb-msg" id="evMsg"></div>
+</div>
+
+<div class="cols">
+  <div class="col leap">
+    <span class="ctag">5년 만기 · 최대 70만</span>
+    <h3>도약계좌 유지</h3>
+    <div class="term"><span class="tnum mono" id="leapTermN">–</span><span class="tunit">개월</span><span class="tsub" id="leapTermSub">남은 만기</span></div>
+    <div class="big"><span class="num mono" id="leapBig">–</span><span class="pct">%</span></div>
+    <div class="biglabel">세전 단리적금 환산금리 <span class="rankbadge eff" id="leapRankR">–</span></div>
+    <div class="profit"><span class="plabel">순이득 <span class="psub">이자+기여금</span></span><span class="pwrap"><span class="rankbadge prof" id="leapRankP">–</span><span class="pval mono" id="leapProfit">–</span></span></div>
+    <div id="leapLines"></div>
+  </div>
+  <div class="col futG">
+    <span class="ctag">3년 만기 · 최대 50만</span>
+    <h3>미래적금 일반형</h3>
+    <div class="term"><span class="tnum mono">36</span><span class="tunit">개월</span><span class="tsub">3년 만기<br><span id="futGGovLabel">정부기여금 6%</span></span></div>
+    <div class="big"><span class="num mono" id="futGBig">–</span><span class="pct">%</span></div>
+    <div class="biglabel">세전 단리적금 환산금리 <span class="rankbadge eff" id="futGRankR">–</span></div>
+    <div class="profit"><span class="plabel">순이득 <span class="psub">이자+기여금</span></span><span class="pwrap"><span class="rankbadge prof" id="futGRankP">–</span><span class="pval mono" id="futGProfit">–</span></span></div>
+    <div id="futGLines"></div>
+  </div>
+  <div class="col futU">
+    <span class="ctag">3년 만기 · 최대 50만</span>
+    <h3>미래적금 우대형</h3>
+    <div class="term"><span class="tnum mono">36</span><span class="tunit">개월</span><span class="tsub">3년 만기<br><span id="futUGovLabel">정부기여금 12%</span></span></div>
+    <div class="big"><span class="num mono" id="futUBig">–</span><span class="pct">%</span></div>
+    <div class="biglabel">세전 단리적금 환산금리 <span class="rankbadge eff" id="futURankR">–</span></div>
+    <div class="profit"><span class="plabel">순이득 <span class="psub">이자+기여금</span></span><span class="pwrap"><span class="rankbadge prof" id="futURankP">–</span><span class="pval mono" id="futUProfit">–</span></span></div>
+    <div id="futULines"></div>
+  </div>
+</div>
+
+<div class="note-compare">
+  26년 7월부터 만기까지 새로 납입할 금액만으로 비교한 결과입니다.
+</div>
+
+<footer>
+  <details>
+    <summary>계산 방식 ▾</summary>
+    <div style="margin-top:8px">
+    · <b>단리 적금 이자</b> = 월납입 × (금리/12) × 거치계수. 첫 달은 전 기간, 마지막 달은 1개월치 이자.<br>
+    · <b>도약 소득연도 매핑</b>: 유지심사 1~6월=전전년도, 7~12월=직전년도 소득 적용. 가입월 기준 매년 심사.<br>
+    · <b>도약 기여금</b>(70만 한도): 2,400만↓ 40만×6%+초과3% · 2,400~3,600 50만×4.6%+초과3% · 3,600~4,800 60만×3.7%+초과3% · 4,800~6,000 70만×3% · 6,000↑ 없음.
+    </div>
+  </details>
+  <p style="margin-top:12px">본 계산기는 추정치이며 실제 약관·은행별 조건과 다를 수 있습니다.</p>
+  <p style="margin-top:6px; font-weight:600; color:var(--ink)">© 2026 은공. 무단 복제·배포를 금합니다.</p>
+</footer>
+
+<script>
+const won = n => Math.round(n).toLocaleString('ko-KR');
+
+// 소득구간 옵션 (대표값 = 구간 판정용)
+const BANDS = [
+  {label:'2,400만원 이하', v:2000},
+  {label:'2,400만 초과 ~ 3,600만 이하', v:3000},
+  {label:'3,600만 초과 ~ 4,800만 이하', v:4000},
+  {label:'4,800만 초과 ~ 6,000만 이하', v:5000},
+  {label:'6,000만원 초과 (기여금 없음)', v:7000},
+];
+document.querySelectorAll('.salsel').forEach((sel,i)=>{
+  BANDS.forEach((b,idx)=>{ const o=document.createElement('option'); o.value=b.v; o.textContent=b.label; sel.appendChild(o); });
+});
+// 기본값: 검증 케이스
+sal24.value=2000; sal25.value=3000; sal26.value=4000; sal27.value=4000;
+
+function monthsBetween(y1,m1,y2,m2){ return (y2-y1)*12+(m2-m1); }
+function appliedIncomeYear(startM, payY, payN){
+  let reviewYear = (payN > startM) ? payY : payY - 1;
+  return (startM <= 6) ? reviewYear - 2 : reviewYear - 1;
+}
+function leapGovMonthly(monthlyWon, salaryMan){
+  const m = Math.min(monthlyWon, 700000);
+  let limit, hi;
+  if(salaryMan <= 2400){ limit=400000; hi=0.060; }
+  else if(salaryMan <= 3600){ limit=500000; hi=0.046; }
+  else if(salaryMan <= 4800){ limit=600000; hi=0.037; }
+  else if(salaryMan <= 6000){ limit=700000; hi=0.030; }
+  else return 0;
+  return Math.min(m,limit)*hi + Math.max(0,m-limit)*0.030;
+}
+function salByYear(incY){
+  if(incY<=2024) return +sal24.value;
+  if(incY===2025) return +sal25.value;
+  if(incY===2026) return +sal26.value;
+  return +sal27.value; // carry-forward
+}
+
+function simulate({months, monthlyWon, rate, govFn, rateFn, govRateFn}){
+  // 방식 B: 매 달 누적 잔액에 '그 달의 금리'로 이자를 쌓는다 (단리, 변동금리는 잔액 전체에 적용)
+  // rateFn(k): k번째 달 원금 이자율 / govRateFn(k): k번째 달 기여금 이자율(기본금리만)
+  let principal=0,selfInt=0,govPrin=0,govInt=0;
+  let bal=0, govBal=0;
+  for(let k=1;k<=months;k++){
+    // 이번 달 납입 (월초 납입 가정)
+    bal+=monthlyWon; principal+=monthlyWon;
+    const g=govFn(k); govBal+=g; govPrin+=g;
+    // 이번 달 금리로 잔액 전체에 이자
+    const payR = rateFn ? rateFn(k) : rate;
+    const govR = govRateFn ? govRateFn(k) : (rateFn ? rateFn(k) : rate);
+    selfInt += bal*(payR/12);
+    govInt  += govBal*(govR/12);
+  }
+  const profit=selfInt+govPrin+govInt, total=principal+profit;
+  const S=months*(months+1)/2;
+  const R = months>0 ? profit/((principal/months)*(S/12)*(1-0.154))*100 : 0;
+  return {months,principal,selfInt,govPrin,govInt,profit,total,R};
+}
+
+function recalc(){
+  const [sy,sm] = leapStart.value.split('-').map(Number);
+  const endY=sy+5, endM=sm;
+  // 남은 납입: 2026.7부터 만기 직전월까지
+  let y=2026, mo=7; const leapGovArr=[];
+  while(monthsBetween(y,mo,endY,endM)>0){
+    leapGovArr.push(leapGovMonthly((+leapMonthly.value||0)*10000, salByYear(appliedIncomeYear(sm,y,mo))));
+    mo++; if(mo>12){mo=1;y++;}
+  }
+  const leapMonths=leapGovArr.length;
+  document.getElementById('remain').textContent = leapMonths>0
+    ? `만기 ${endY}년 ${endM}월 · 2026년 7월부터 남은 납입 ${Math.floor(leapMonths/12)}년 ${leapMonths%12}개월 (${leapMonths}개월)`
+    : '⚠ 이미 만기 도래 — 도약 유지 시나리오 없음';
+
+  // 도약 금리: 가입 3년 경과 시점부터 변동금리(매달 잔액 전체에 적용). 기여금엔 기본금리만.
+  const leapFixRate=+leapRate.value/100;            // 고정구간 원금금리(기본+우대)
+  const leapVarRate=+document.getElementById('leapVarRate').value/100;  // 변동구간 원금금리(변동기본+우대)
+  const leapFixBase = leapFixRate>=0.045 ? 0.045 : 0.038;  // 고정구간 기여금 기본금리
+  const leapVarBase = 0.030;                        // 변동구간 기여금 기본금리(변동기본)
+  // k번째 달이 변동구간(가입 3년 경과 = 만기 2년 전 이후)인지 판정
+  const vStartY=endY-2, vStartM=endM;
+  const payDate=k=>{ let mm=6+k, yy=2026; yy+=Math.floor((mm-1)/12); mm=((mm-1)%12)+1; return [yy,mm]; };
+  const isVar=k=>{ const [yy,mm]=payDate(k); return monthsBetween(vStartY,vStartM,yy,mm)>=0; };
+
+  const leap=simulate({
+    months:leapMonths, monthlyWon:(+leapMonthly.value||0)*10000,
+    govFn:k=>leapGovArr[k-1],
+    rateFn:k=> isVar(k) ? leapVarRate : leapFixRate,
+    govRateFn:k=> isVar(k) ? leapVarBase : leapFixBase
+  });
+  const fr=+futRate.value/100, fm=(+futMonthly.value||0)*10000;
+  // 미래적금 기여금: 25년 소득 6,000만 초과 시 0 (세제혜택만), 이하면 일반 6%/우대 12%
+  // 기여금 이자엔 기본금리 5%만 적용 (우대금리 제외)
+  const sal25Man=+sal25.value;
+  const futNoGov = sal25Man > 6000;
+  const futGRate = futNoGov ? 0 : 0.06;
+  const futURate = futNoGov ? 0 : 0.12;
+  const futBase = 0.05; // 미래적금 기본금리
+  const futG=simulate({months:36, monthlyWon:fm, rate:fr, govFn:k=>fm*futGRate, govRateFn:k=>futBase});
+  const futU=simulate({months:36, monthlyWon:fm, rate:fr, govFn:k=>fm*futURate, govRateFn:k=>futBase});
+
+  const leapTN=document.getElementById('leapTermN');
+  const leapTS=document.getElementById('leapTermSub');
+  if(leapMonths>0){
+    leapTN.textContent = leapMonths;
+    const yy=Math.floor(leapMonths/12), mm=leapMonths%12;
+    leapTS.innerHTML = `남은 만기<br>${yy>0?yy+'년 ':''}${mm}개월`;
+  } else {
+    leapTN.textContent='0';
+    leapTS.innerHTML='만기 도래';
+  }
+  // 미래 기여금 라벨 (소득 6,000만 초과 시 0 안내)
+  document.getElementById('futGGovLabel').textContent = futNoGov ? '정부기여금 없음' : '정부기여금 6%';
+  document.getElementById('futUGovLabel').textContent = futNoGov ? '정부기여금 없음' : '정부기여금 12%';
+
+  fill('leap', leap); fill('futG', futG); fill('futU', futU);
+  updateRanks(leap, futG, futU, leapMonths, futNoGov);
+}
+
+function setRank(id, rank, total){
+  const el=document.getElementById(id);
+  if(!el) return;
+  if(rank==null){ el.textContent='–'; el.classList.remove('r1'); return; }
+  el.textContent = `${rank}위`;
+  el.classList.toggle('r1', rank===1);
+}
+
+function updateRanks(leap, futG, futU, leapMonths, futNoGov){
+  // 비교 대상: 도약(만기 남았을 때만), 미래 일반, 미래 우대
+  const NAME={leap:'도약계좌 유지', futG:'미래적금 일반형', futU:'미래적금 우대형'};
+  const items=[];
+  if(leapMonths>0) items.push({pfx:'leap', r:leap.R, p:leap.profit});
+  items.push({pfx:'futG', r:futG.R, p:futG.profit});
+  items.push({pfx:'futU', r:futU.R, p:futU.profit});
+
+  // 효율(환산금리) 순위
+  const byR=[...items].sort((a,b)=>b.r-a.r);
+  byR.forEach((it,i)=>setRank(it.pfx+'RankR', i+1));
+  // 총이득(순이득) 순위
+  const byP=[...items].sort((a,b)=>b.p-a.p);
+  byP.forEach((it,i)=>setRank(it.pfx+'RankP', i+1));
+
+  // 도약 만기 지났으면 도약 배지는 비활성
+  if(leapMonths<=0){ setRank('leapRankR', null); setRank('leapRankP', null); }
+
+  // 배너: 효율/총이득 각각 1·2·3위 전체 표시
+  const topR=byR[0], topP=byP[0];
+  const rateRows = byR.map((it,i)=>{
+    const cls = i===0 ? 'ev-row top' : 'ev-row';
+    return `<li class="${cls}"><span class="ev-rank">${i+1}위</span><span class="ev-name">${NAME[it.pfx]}</span><span class="ev-num">${it.r.toFixed(2)}%</span></li>`;
+  }).join('');
+  const profRows = byP.map((it,i)=>{
+    const cls = i===0 ? 'ev-row top' : 'ev-row';
+    return `<li class="${cls}"><span class="ev-rank">${i+1}위</span><span class="ev-name">${NAME[it.pfx]}</span><span class="ev-num">${won(it.p)}원</span></li>`;
+  }).join('');
+  document.getElementById('evRateList').innerHTML = rateRows;
+  document.getElementById('evProfList').innerHTML = profRows;
+
+  const msg=document.getElementById('evMsg');
+  let base;
+  if(topR.pfx===topP.pfx){
+    base = `효율과 총이득 모두 <b>${NAME[topR.pfx]}</b>가 1위입니다.`;
+  } else {
+    base = `효율 1위는 <b>${NAME[topR.pfx]}</b>, 총이득 1위는 <b>${NAME[topP.pfx]}</b>로 갈립니다.`;
+  }
+  if(futNoGov){
+    msg.innerHTML = base + ` 2025년 소득이 6,000만원을 초과해 미래적금은 정부기여금 대상이 아니며, 일반형·우대형 모두 비과세 혜택만 적용됩니다.`;
+  } else {
+    msg.innerHTML = base + ` 미래적금 우대형은 <b>중소기업 재직자(총급여 3,600만원 이하)</b>나 <b>중소기업 신규취업자(4,800만원 이하)</b>, <b>소상공인(연매출 1억원 이하)</b>이 대상입니다. 가구 중위소득 기준도 함께 충족해야 하니 별도 확인이 필요합니다. 우대형 대상이 아니라면 그 아래 순위를 기준으로 보세요.`;
+  }
+}
+
+function fill(pfx, r){
+  const big=document.getElementById(pfx+'Big');
+  const box=document.getElementById(pfx+'Lines');
+  const prof=document.getElementById(pfx+'Profit');
+  if(r.months<=0 || r.principal<=0){ big.textContent='–'; if(prof)prof.textContent='–'; box.innerHTML=''; return; }
+  big.textContent = r.R.toFixed(2);
+  if(prof) prof.textContent = won(r.profit)+'원';
+  box.innerHTML = `
+    <div class="ln"><span>원금</span><span>${won(r.principal)}원</span></div>
+    <div class="ln"><span>원금 이자</span><span>${won(r.selfInt)}원</span></div>
+    <div class="ln"><span>정부기여금</span><span>${won(r.govPrin)}원</span></div>
+    <div class="ln"><span>기여금 이자</span><span>${won(r.govInt)}원</span></div>
+    <div class="ln tot"><span>실수령</span><span>${won(r.total)}원</span></div>`;
+}
+
+leapRate.addEventListener('input',()=>{leapRateV.textContent=(+leapRate.value).toFixed(1)+'%'; recalc();});
+document.getElementById('leapVarRate').addEventListener('input',function(){document.getElementById('leapVarRateV').textContent=(+this.value).toFixed(1)+'%'; recalc();});
+futRate.addEventListener('input',()=>{futRateV.textContent=(+futRate.value).toFixed(1)+'%'; recalc();});
+['leapStart','leapMonthly','futMonthly','sal24','sal25','sal26','sal27']
+  .forEach(id=>document.getElementById(id).addEventListener('input',recalc));
+recalc();
+
+// 가벼운 복사 방해 (일반 사용자용, 개발자도구로는 우회 가능)
+document.addEventListener('contextmenu', e=>{
+  // 입력 필드에서는 우클릭 허용 (붙여넣기 등 정상 사용)
+  if(e.target.closest('input,select,textarea')) return;
+  e.preventDefault();
+});
+document.addEventListener('dragstart', e=>e.preventDefault());
+document.addEventListener('copy', e=>{
+  if(e.target.closest && e.target.closest('input,select,textarea')) return;
+  e.preventDefault();
+});
+</script>
+</body>
+</html>
